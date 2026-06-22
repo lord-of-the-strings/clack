@@ -40,9 +40,37 @@ pub fn is_code_identifier(word: &str) -> bool {
         return true;
     }
     let has_lower = trimmed.chars().any(|c| c.is_lowercase());
-    let has_upper = trimmed.chars().any(|c| c.is_uppercase());
-    if has_lower && has_upper {
+    // Only count upper if it's not just the first letter (to ignore simple capitalized words like "Hello")
+    let has_internal_upper = trimmed.chars().skip(1).any(|c| c.is_uppercase());
+    if has_lower && has_internal_upper {
         return true;
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bracket_depth() {
+        let mut ctx = CodeContext::new();
+        ctx.update('{');
+        assert_eq!(ctx.bracket_depth, 1);
+        ctx.update('(');
+        assert_eq!(ctx.bracket_depth, 2);
+        ctx.update(')');
+        assert_eq!(ctx.bracket_depth, 1);
+        ctx.update('}');
+        assert_eq!(ctx.bracket_depth, 0);
+    }
+
+    #[test]
+    fn test_is_code_identifier() {
+        assert!(is_code_identifier("snake_case"));
+        assert!(is_code_identifier("CamelCase"));
+        assert!(is_code_identifier("mixedCase"));
+        assert!(!is_code_identifier("hello"));
+        assert!(!is_code_identifier("Hello"));
+    }
 }

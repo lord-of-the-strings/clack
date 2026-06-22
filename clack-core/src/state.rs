@@ -72,3 +72,55 @@ impl StateManager {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::rng::ClackRng;
+
+    #[test]
+    fn test_flow_trigger() {
+        let mut sm = StateManager::new();
+        let mut rng = ClackRng::new(Some(42));
+        
+        for _ in 0..10 {
+            sm.advance_word();
+            sm.try_transition(&mut rng, false, false, false, false);
+        }
+        assert_eq!(sm.current_state, BehavioralState::Flow);
+    }
+
+    #[test]
+    fn test_fatigue_trigger() {
+        let mut sm = StateManager::new();
+        let mut rng = ClackRng::new(Some(42));
+        
+        sm.try_transition(&mut rng, false, false, true, false);
+        assert_eq!(sm.current_state, BehavioralState::Fatigued);
+    }
+
+    #[test]
+    fn test_distracted_minimum_words() {
+        let mut sm = StateManager::new();
+        let mut rng = ClackRng::new(Some(42));
+        
+        // Even at a sentence boundary with RNG manipulated, if words < 40, shouldn't trigger
+        // We'll brute force 100 transitions to be sure
+        for _ in 0..100 {
+            sm.try_transition(&mut rng, true, false, false, false);
+            assert_ne!(sm.current_state, BehavioralState::Distracted);
+        }
+
+        // Now set total words > 40
+        sm.total_words = 45;
+        let mut triggered = false;
+        for _ in 0..100 {
+            sm.try_transition(&mut rng, true, false, false, false);
+            if sm.current_state == BehavioralState::Distracted {
+                triggered = true;
+                break;
+            }
+        }
+        assert!(triggered);
+    }
+}

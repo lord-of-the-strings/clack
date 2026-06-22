@@ -104,3 +104,30 @@ pub fn emit_delayed(rng: &mut ClackRng, num_backspaces: usize, base_iki: u64, st
 
     events
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::rng::ClackRng;
+
+    #[test]
+    fn test_backspace_scaling() {
+        let mut rng = ClackRng::new(Some(42));
+        let base_iki = 100;
+        
+        let events = emit_immediate(&mut rng, 2, &[b'a', b'b'], base_iki, BehavioralState::Focused, 100.0);
+        
+        // Total events: 2 backspaces, 2 retypes
+        assert_eq!(events.len(), 4);
+        
+        // Events 0 and 1 are backspaces. Their delay must be scaled off base_iki (100)
+        // Backspaces have BACKSPACE_IKI_MULT_MIN (0.6) to BACKSPACE_IKI_MULT_MAX (1.0)
+        // Plus event 0 has the notice pause. Let's just check event 1.
+        let e1_delay = events[1].delay_ms;
+        assert!(e1_delay >= 60 && e1_delay <= 100);
+        
+        // Retypes should be exactly base_iki
+        assert_eq!(events[2].delay_ms, 100);
+        assert_eq!(events[3].delay_ms, 100);
+    }
+}

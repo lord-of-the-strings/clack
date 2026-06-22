@@ -183,3 +183,36 @@ pub fn shift_penalty(rng: &mut ClackRng) -> f64 {
     let mu = SHIFT_PENALTY_MU_MS.ln() - (sigma * sigma / 2.0);
     rng.sample_log_normal(mu, sigma).clamp(SHIFT_PENALTY_MIN_MS, SHIFT_PENALTY_MAX_MS)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_distance_calculations() {
+        let qwerty = KeyboardLayout::Qwerty;
+        let dvorak = KeyboardLayout::Dvorak;
+
+        let q_a = key_position('a', qwerty).unwrap();
+        let q_s = key_position('s', qwerty).unwrap();
+        let q_p = key_position('p', qwerty).unwrap();
+        
+        let d_a = key_position('a', dvorak).unwrap();
+        let d_o = key_position('o', dvorak).unwrap();
+
+        let dist_qwerty = distance(q_a, q_s);
+        let dist_dvorak = distance(d_a, d_o);
+        let far_qwerty = distance(q_a, q_p);
+
+        assert!(dist_qwerty < 1.5, "Qwerty a->s should be close");
+        assert!(dist_dvorak < 1.5, "Dvorak a->o should be close");
+        assert!(far_qwerty > 5.0, "Qwerty a->p should be far");
+    }
+
+    #[test]
+    fn test_shift_penalty_calc() {
+        let mut rng = crate::rng::ClackRng::new(Some(42));
+        let p = shift_penalty(&mut rng);
+        assert!(p > 0.0);
+    }
+}
