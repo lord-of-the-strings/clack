@@ -22,9 +22,34 @@ Clack doesn't just add a random delay between keypresses. It simulates an entire
 
 ## 🚀 Installation
 
-Clack is built in Rust for maximum performance and cross-platform compatibility.
+Clack is built in Rust for maximum performance and cross-platform compatibility. You can install Clack by downloading a pre-compiled binary for your operating system, or by compiling it from source.
 
-To install from source, ensure you have Rust and Cargo installed, then run:
+### Option 1: Debian/Ubuntu Linux (.deb)
+If you are using a Debian-based Linux distribution (Ubuntu, Mint, Pop!_OS, etc.), the easiest way to install Clack is using the `.deb` package. This automatically installs the `clack` command to your system path.
+
+1. Download the `clack_1.0.0_amd64.deb` file from the Releases page.
+2. Open your terminal in the download folder and run:
+   ```bash
+   sudo dpkg -i clack_1.0.0_amd64.deb
+   ```
+3. You can now use `clack` anywhere!
+
+### Option 2: All Other Linux Distributions (.tar.gz)
+If you are using Arch, Fedora, Alpine, or simply prefer standalone portable executables, use the `.tar.gz` archive.
+
+1. Download the `clack-1.0.0-x86_64-linux-gnu.tar.gz` file from the Releases page.
+2. Extract the archive:
+   ```bash
+   tar -xzf clack-1.0.0-x86_64-linux-gnu.tar.gz
+   ```
+3. Make it executable and move it to your system bin folder:
+   ```bash
+   chmod +x clack
+   sudo mv clack /usr/local/bin/
+   ```
+
+### Option 3: Compile from Source (Any OS / macOS / Windows)
+If you have Rust and Cargo installed, you can compile Clack natively on any operating system.
 
 ```bash
 git clone https://github.com/ThisWasAryan/clack.git
@@ -52,16 +77,28 @@ cat my_script.sh | clack
 
 ### Configuration Flags
 
-You can customize the simulated typist's behavior using CLI arguments:
+You can completely customize the simulated typist's behavior using CLI arguments.
 
-- `--wpm <f64>`: Set the target Words Per Minute (default: `80.0`).
-- `--error-rate <f64>`: Probability of making a mistake per character (default: `0.03`, i.e., 3%).
-- `--correction-rate <f64>`: Probability of correcting a mistake (default: `1.0`, i.e., 100%).
-- `--jitter <f64>`: Variance in the typing speed (default: `0.1`). Higher is more erratic.
-- `--layout <string>`: The physical keyboard layout to simulate. Options: `qwerty` (default), `dvorak`, `colemak`, `azerty`.
-- `--code-mode`: Enable scope-depth tracking and identifier slowdowns for realistic code typing.
+**Typing Mechanics**
+- `--wpm <FLOAT>`: Set the target Words Per Minute. The engine natively scales key travel timing off of this (default: `60.0`).
+- `--layout <STRING>`: The physical keyboard layout to simulate. This fundamentally alters finger-travel distance calculations. Options: `qwerty`, `dvorak`, `colemak`, `azerty` (default: `qwerty`).
+- `--jitter <FLOAT>`: Variance in the typing speed. Higher values lead to more erratic, unpredictable typing bursts (default: `0.15`).
 
-### Examples
+**Errors and Mistakes**
+- `--error-rate <FLOAT>`: Probability of making a mistake per character. Supports Typos, Transpositions, and Omissions (default: `0.04`, i.e., 4%).
+- `--correction-rate <FLOAT>`: Probability of realizing and correcting a mistake. Set to `1.0` to guarantee the output perfectly matches the input text (default: `0.85`).
+- `--no-errors`: Completely disable all mistake generation, forcing 100% typing accuracy.
+
+**Behavioral State Machine**
+- `--session-length <INT>`: The expected character length of the typing session. Used to calculate when the typist experiences "Fatigue" burnout (default: `500`).
+- `--no-fatigue`: Disable the Fatigue mechanic, preventing the typist from slowing down or making more errors over long files.
+- `--max-pause <INT>`: The absolute maximum time (in milliseconds) the typist is allowed to pause between actions (default: `5000`).
+- `--thinking-pause-prob <FLOAT>`: The probability that encountering a long, difficult word triggers a "Thinking" hesitation state (default: `0.015`).
+- `--code-mode`: Enable scope-depth tracking and identifier slowdowns. Specifically designed to make writing Rust/C/Python source code look realistic by slowing down on nested brackets and `CamelCase` identifiers.
+- `--state-output`: Debug flag. Prints the internal cognitive state transitions (e.g., `Flow`, `Distracted`, `Fatigued`) to `stderr` as they occur.
+
+**System**
+- `--seed <INT>`: Provide a specific RNG seed to make the entire typing simulation 100% deterministic and reproducible.
 
 **Simulate a very fast, erratic typist who makes lots of mistakes:**
 ```bash
