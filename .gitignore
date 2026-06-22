@@ -11,3 +11,7 @@ CONTRIBUTING.md
 htype-2-mvp-spec.md
 MVP-SPEC.md
 *.py
+
+# GUI planning documents (AI development tools, not project docs)
+gui/docs/*.md
+gui/SETUP.md
