@@ -42,6 +42,12 @@ struct Cli {
 
     #[arg(long, hide = true)]
     generate_man: bool,
+
+    #[arg(long)]
+    code_mode: bool,
+
+    #[arg(long, default_value_t = String::from("qwerty"))]
+    layout: String,
 }
 
 fn main() {
@@ -73,6 +79,15 @@ fn main() {
     config.max_pause_ms = cli.max_pause;
     config.thinking_pause_prob = cli.thinking_pause_prob;
     config.state_output = cli.state_output;
+    config.code_mode = cli.code_mode;
+
+    use std::str::FromStr;
+    if let Ok(l) = clack_core::keyboard::KeyboardLayout::from_str(&cli.layout) {
+        config.layout = l;
+    } else {
+        eprintln!("Invalid layout '{}'. Valid options: qwerty, dvorak, colemak, azerty", cli.layout);
+        process::exit(1);
+    }
 
     let mut engine = match ClackEngine::new(config) {
         Ok(e) => e,

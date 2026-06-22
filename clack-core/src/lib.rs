@@ -1,5 +1,6 @@
 #![allow(dead_code, unused_variables)]
 
+pub mod code;
 pub mod constants;
 pub mod correction;
 pub mod error;
@@ -25,6 +26,8 @@ pub struct ClackConfig {
     pub max_pause_ms: u64,
     pub thinking_pause_prob: f64,
     pub state_output: bool,
+    pub code_mode: bool,
+    pub layout: keyboard::KeyboardLayout,
 }
 
 impl Default for ClackConfig {
@@ -41,6 +44,8 @@ impl Default for ClackConfig {
             max_pause_ms: 5000,
             thinking_pause_prob: 0.015,
             state_output: false,
+            code_mode: false,
+            layout: keyboard::KeyboardLayout::Qwerty,
         }
     }
 }
@@ -101,6 +106,7 @@ pub struct ClackEngine {
     state_manager: state::StateManager,
     chars_typed: usize,
     accumulated_pause: u64,
+    code_context: code::CodeContext,
 }
 
 impl ClackEngine {
@@ -123,6 +129,7 @@ impl ClackEngine {
             state_manager: state::StateManager::new(),
             chars_typed: 0,
             accumulated_pause: 0,
+            code_context: code::CodeContext::new(),
         })
     }
 
@@ -156,7 +163,10 @@ impl ClackEngine {
             false,
         );
 
-        let word_mod = language::apply_word_modifier(1.0, word.trim_end());
+        let mut word_mod = language::apply_word_modifier(1.0, word.trim_end());
+        if self.config.code_mode && code::is_code_identifier(word) {
+            word_mod *= 1.15; // 15% slowdown for identifiers
+        }
 
         let base_iki = timing::compute_base_iki(self.config.wpm);
         let target_iki = base_iki * word_mod * warmup_mod * fatigue_speed_mod;
@@ -166,6 +176,9 @@ impl ClackEngine {
         
         while i < chars.len() {
             let c = chars[i];
+            if self.config.code_mode {
+                self.code_context.update(c);
+            }
             self.chars_typed += 1;
             
             let effective_error_rate = if self.config.no_errors { 0.0 } else { self.config.error_rate * fatigue_error_mod };
@@ -175,18 +188,28 @@ impl ClackEngine {
                 let error_type = error::select_error_type(&mut self.rng);
                 let correction_mode = correction::select_correction_mode(&mut self.rng, self.config.correction_rate);
                 
-                let wrong_chars = match error_type {
-                    error::ErrorType::Typo => vec![error::generate_typo(&mut self.rng, c)],
+                let (wrong_chars, correct_chars) = match error_type {
+                    error::ErrorType::Typo => (vec![error::generate_typo(&mut self.rng, c)], vec![c]),
                     error::ErrorType::Transposition => {
                         if i + 1 < chars.len() {
-                            let v = vec![chars[i+1], c];
+                            let w = vec![chars[i+1], c];
+                            let cr = vec![c, chars[i+1]];
                             i += 1;
-                            v
+                            (w, cr)
                         } else {
-                            vec![error::generate_typo(&mut self.rng, c)]
+                            (vec![error::generate_typo(&mut self.rng, c)], vec![c])
                         }
                     },
-                    error::ErrorType::Omission => vec![],
+                    error::ErrorType::Omission => (vec![], vec![c]),
+                    error::ErrorType::PanicStuckKey => {
+                        let repeats = self.rng.sample_uniform_int(3, 8);
+                        (vec![c; repeats], vec![c])
+                    },
+                    error::ErrorType::PanicPrefix => {
+                        let mut w = vec![c];
+                        w.extend_from_slice(&chars[0..=i]);
+                        (w, vec![c])
+                    }
                 };
 
                 for wc in &wrong_chars {
@@ -197,23 +220,48 @@ impl ClackEngine {
                 if let Some(mode) = correction_mode {
                     match mode {
                         correction::CorrectionMode::Immediate => {
-                            let correct_char = c;
-                            let events = correction::emit_immediate(&mut self.rng, correct_char as u8, base_iki as u64);
+                            let correct_bytes: Vec<u8> = correct_chars.iter().map(|&ch| ch as u8).collect();
+                            let events = correction::emit_immediate(&mut self.rng, wrong_chars.len(), &correct_bytes, base_iki as u64);
                             for mut e in events {
                                 e.state_transition = state_transition.take();
                                 self.event_queue.push_back(e);
                             }
                         }
                         correction::CorrectionMode::Delayed { chars_to_continue } => {
-                            let events = correction::emit_delayed(&mut self.rng, wrong_chars.len());
+                            // The user has typed `wrong_chars.len()` wrong characters.
+                            // Then they type `chars_to_continue` characters.
+                            // Then they backspace all of them.
+                            let mut typed_after_error = 0;
+                            // Type the continued chars
+                            for &correct in chars.iter().skip(i + 1).take(chars_to_continue) {
+                                let iki_final = self.compute_char_iki(target_iki, correct);
+                                self.queue_event(correct as u8, iki_final, state_transition.take());
+                                typed_after_error += 1;
+                            }
+                            // i needs to be advanced by typed_after_error so we do not type them again as normal chars
+                            // but wait, delayed correction backspaces them, so they WILL be typed again.
+                            // We shouldn`t advance `i` here.
+
+                            let total_backspaces = wrong_chars.len() + typed_after_error;
+                            let events = correction::emit_delayed(&mut self.rng, total_backspaces);
                             for mut e in events {
                                 e.state_transition = state_transition.take();
                                 self.event_queue.push_back(e);
                             }
-                            for &correct in &chars[(i.saturating_sub(wrong_chars.len().max(1) - 1))..=i] {
+
+                            // Retype the correct chars for the error
+                            for &correct in &correct_chars {
                                 let iki_final = self.compute_char_iki(target_iki, correct);
                                 self.queue_event(correct as u8, iki_final, state_transition.take());
                             }
+                            
+                            // Retype the continued chars
+                            for &correct in chars.iter().skip(i + 1).take(typed_after_error) {
+                                let iki_final = self.compute_char_iki(target_iki, correct);
+                                self.queue_event(correct as u8, iki_final, state_transition.take());
+                            }
+                            
+                            i += typed_after_error;
                         }
                     }
                 }
@@ -246,11 +294,12 @@ impl ClackEngine {
     }
     
     fn compute_char_iki(&mut self, target_iki: f64, c: char) -> u64 {
-        let mut iki_raw = timing::sample_raw_iki(&mut self.rng, target_iki, self.config.jitter);
+        let depth_mod = if self.config.code_mode { self.code_context.get_depth_multiplier() } else { 1.0 };
+        let mut iki_raw = timing::sample_raw_iki(&mut self.rng, target_iki * depth_mod, self.config.jitter);
         iki_raw = self.burst_state.apply_modifier(iki_raw);
         iki_raw = timing::apply_hard_floor(iki_raw);
 
-        let curr_pos = keyboard::key_position(c);
+        let curr_pos = keyboard::key_position(c, self.config.layout);
         if let (Some(p1), Some(p2)) = (self.prev_pos, curr_pos) {
             iki_raw = keyboard::apply_distance_modifier(iki_raw, p1, p2);
             iki_raw = keyboard::apply_hand_modifier(iki_raw, p1, p2);

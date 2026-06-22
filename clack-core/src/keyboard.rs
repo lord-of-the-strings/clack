@@ -1,8 +1,45 @@
 use crate::constants::*;
 use crate::rng::ClackRng;
+use std::str::FromStr;
 
-pub fn key_position(c: char) -> Option<(i32, i32)> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeyboardLayout {
+    Qwerty,
+    Dvorak,
+    Colemak,
+    Azerty,
+}
+
+impl Default for KeyboardLayout {
+    fn default() -> Self {
+        Self::Qwerty
+    }
+}
+
+impl FromStr for KeyboardLayout {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "qwerty" => Ok(Self::Qwerty),
+            "dvorak" => Ok(Self::Dvorak),
+            "colemak" => Ok(Self::Colemak),
+            "azerty" => Ok(Self::Azerty),
+            _ => Err(format!("Unknown layout: {}", s)),
+        }
+    }
+}
+
+pub fn key_position(c: char, layout: KeyboardLayout) -> Option<(i32, i32)> {
     let c = c.to_ascii_lowercase();
+    match layout {
+        KeyboardLayout::Qwerty => qwerty_position(c),
+        KeyboardLayout::Dvorak => dvorak_position(c),
+        KeyboardLayout::Colemak => colemak_position(c),
+        KeyboardLayout::Azerty => azerty_position(c),
+    }
+}
+
+fn qwerty_position(c: char) -> Option<(i32, i32)> {
     match c {
         // Row 0
         '1' => Some((0, 0)), '2' => Some((1, 0)), '3' => Some((2, 0)), '4' => Some((3, 0)),
@@ -20,6 +57,78 @@ pub fn key_position(c: char) -> Option<(i32, i32)> {
         'z' => Some((0, 3)), 'x' => Some((1, 3)), 'c' => Some((2, 3)), 'v' => Some((3, 3)),
         'b' => Some((4, 3)), 'n' => Some((5, 3)), 'm' => Some((6, 3)), ',' => Some((7, 3)),
         '.' => Some((8, 3)), '/' => Some((9, 3)),
+        // Row 4
+        ' ' => Some((5, 4)),
+        _ => None,
+    }
+}
+
+fn dvorak_position(c: char) -> Option<(i32, i32)> {
+    match c {
+        // Row 0
+        '1' => Some((0, 0)), '2' => Some((1, 0)), '3' => Some((2, 0)), '4' => Some((3, 0)),
+        '5' => Some((4, 0)), '6' => Some((5, 0)), '7' => Some((6, 0)), '8' => Some((7, 0)),
+        '9' => Some((8, 0)), '0' => Some((9, 0)), '[' => Some((10, 0)), ']' => Some((11, 0)),
+        // Row 1
+        '\'' => Some((0, 1)), ',' => Some((1, 1)), '.' => Some((2, 1)), 'p' => Some((3, 1)),
+        'y' => Some((4, 1)), 'f' => Some((5, 1)), 'g' => Some((6, 1)), 'c' => Some((7, 1)),
+        'r' => Some((8, 1)), 'l' => Some((9, 1)), '/' => Some((10, 1)), '=' => Some((11, 1)),
+        // Row 2
+        'a' => Some((0, 2)), 'o' => Some((1, 2)), 'e' => Some((2, 2)), 'u' => Some((3, 2)),
+        'i' => Some((4, 2)), 'd' => Some((5, 2)), 'h' => Some((6, 2)), 't' => Some((7, 2)),
+        'n' => Some((8, 2)), 's' => Some((9, 2)), '-' => Some((10, 2)),
+        // Row 3
+        ';' => Some((0, 3)), 'q' => Some((1, 3)), 'j' => Some((2, 3)), 'k' => Some((3, 3)),
+        'x' => Some((4, 3)), 'b' => Some((5, 3)), 'm' => Some((6, 3)), 'w' => Some((7, 3)),
+        'v' => Some((8, 3)), 'z' => Some((9, 3)),
+        // Row 4
+        ' ' => Some((5, 4)),
+        _ => None,
+    }
+}
+
+fn colemak_position(c: char) -> Option<(i32, i32)> {
+    match c {
+        // Row 0
+        '1' => Some((0, 0)), '2' => Some((1, 0)), '3' => Some((2, 0)), '4' => Some((3, 0)),
+        '5' => Some((4, 0)), '6' => Some((5, 0)), '7' => Some((6, 0)), '8' => Some((7, 0)),
+        '9' => Some((8, 0)), '0' => Some((9, 0)), '-' => Some((10, 0)), '=' => Some((11, 0)),
+        // Row 1
+        'q' => Some((0, 1)), 'w' => Some((1, 1)), 'f' => Some((2, 1)), 'p' => Some((3, 1)),
+        'g' => Some((4, 1)), 'j' => Some((5, 1)), 'l' => Some((6, 1)), 'u' => Some((7, 1)),
+        'y' => Some((8, 1)), ';' => Some((9, 1)), '[' => Some((10, 1)), ']' => Some((11, 1)),
+        // Row 2
+        'a' => Some((0, 2)), 'r' => Some((1, 2)), 's' => Some((2, 2)), 't' => Some((3, 2)),
+        'd' => Some((4, 2)), 'h' => Some((5, 2)), 'n' => Some((6, 2)), 'e' => Some((7, 2)),
+        'i' => Some((8, 2)), 'o' => Some((9, 2)), '\'' => Some((10, 2)),
+        // Row 3
+        'z' => Some((0, 3)), 'x' => Some((1, 3)), 'c' => Some((2, 3)), 'v' => Some((3, 3)),
+        'b' => Some((4, 3)), 'k' => Some((5, 3)), 'm' => Some((6, 3)), ',' => Some((7, 3)),
+        '.' => Some((8, 3)), '/' => Some((9, 3)),
+        // Row 4
+        ' ' => Some((5, 4)),
+        _ => None,
+    }
+}
+
+fn azerty_position(c: char) -> Option<(i32, i32)> {
+    match c {
+        // Row 0
+        '1' => Some((0, 0)), '2' => Some((1, 0)), '3' => Some((2, 0)), '4' => Some((3, 0)),
+        '5' => Some((4, 0)), '6' => Some((5, 0)), '7' => Some((6, 0)), '8' => Some((7, 0)),
+        '9' => Some((8, 0)), '0' => Some((9, 0)), '-' => Some((10, 0)), '=' => Some((11, 0)),
+        // Row 1
+        'a' => Some((0, 1)), 'z' => Some((1, 1)), 'e' => Some((2, 1)), 'r' => Some((3, 1)),
+        't' => Some((4, 1)), 'y' => Some((5, 1)), 'u' => Some((6, 1)), 'i' => Some((7, 1)),
+        'o' => Some((8, 1)), 'p' => Some((9, 1)), '[' => Some((10, 1)), ']' => Some((11, 1)),
+        // Row 2
+        'q' => Some((0, 2)), 's' => Some((1, 2)), 'd' => Some((2, 2)), 'f' => Some((3, 2)),
+        'g' => Some((4, 2)), 'h' => Some((5, 2)), 'j' => Some((6, 2)), 'k' => Some((7, 2)),
+        'l' => Some((8, 2)), 'm' => Some((9, 2)), '\'' => Some((10, 2)),
+        // Row 3
+        'w' => Some((0, 3)), 'x' => Some((1, 3)), 'c' => Some((2, 3)), 'v' => Some((3, 3)),
+        'b' => Some((4, 3)), 'n' => Some((5, 3)), ',' => Some((6, 3)), ';' => Some((7, 3)),
+        ':' => Some((8, 3)), '/' => Some((9, 3)),
         // Row 4
         ' ' => Some((5, 4)),
         _ => None,

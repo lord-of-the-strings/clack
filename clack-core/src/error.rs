@@ -5,6 +5,8 @@ pub enum ErrorType {
     Typo,
     Transposition,
     Omission,
+    PanicStuckKey,
+    PanicPrefix,
 }
 
 pub fn should_generate_error(rng: &mut ClackRng, error_rate: f64) -> bool {
@@ -18,8 +20,12 @@ pub fn select_error_type(rng: &mut ClackRng) -> ErrorType {
         ErrorType::Typo
     } else if roll < 0.90 {
         ErrorType::Transposition
-    } else {
+    } else if roll < 0.98 {
         ErrorType::Omission
+    } else if roll < 0.99 {
+        ErrorType::PanicStuckKey
+    } else {
+        ErrorType::PanicPrefix
     }
 }
 

@@ -22,7 +22,7 @@ pub fn select_correction_mode(rng: &mut ClackRng, correction_rate: f64) -> Optio
     }
 }
 
-pub fn emit_immediate(rng: &mut ClackRng, correct_char: u8, retype_delay: u64) -> Vec<crate::ClackEvent> {
+pub fn emit_immediate(rng: &mut ClackRng, num_backspaces: usize, correct_chars: &[u8], retype_delay: u64) -> Vec<crate::ClackEvent> {
     use crate::constants::{
         CORRECTION_PAUSE_MAX_MS, CORRECTION_PAUSE_MIN_MS, CORRECTION_PAUSE_MU_MS,
         CORRECTION_PAUSE_SIGMA, CHAR_BY_CHAR_MAX_MS, CHAR_BY_CHAR_MIN_MS,
@@ -35,19 +35,23 @@ pub fn emit_immediate(rng: &mut ClackRng, correct_char: u8, retype_delay: u64) -
         .sample_log_normal(mu, sigma)
         .clamp(CORRECTION_PAUSE_MIN_MS, CORRECTION_PAUSE_MAX_MS) as u64;
 
-    let bs_delay = rng.sample_uniform(CHAR_BY_CHAR_MIN_MS, CHAR_BY_CHAR_MAX_MS) as u64;
+    for i in 0..num_backspaces {
+        let bs_delay = rng.sample_uniform(CHAR_BY_CHAR_MIN_MS, CHAR_BY_CHAR_MAX_MS) as u64;
+        let delay_ms = if i == 0 { notice_pause + bs_delay } else { bs_delay };
+        events.push(crate::ClackEvent {
+            delay_ms,
+            bytes: vec![0x08],
+            state_transition: None,
+        });
+    }
 
-    events.push(crate::ClackEvent {
-        delay_ms: notice_pause + bs_delay,
-        bytes: vec![0x08],
-        state_transition: None,
-    });
-
-    events.push(crate::ClackEvent {
-        delay_ms: retype_delay,
-        bytes: vec![correct_char],
-        state_transition: None,
-    });
+    for &correct_char in correct_chars {
+        events.push(crate::ClackEvent {
+            delay_ms: retype_delay,
+            bytes: vec![correct_char],
+            state_transition: None,
+        });
+    }
 
     events
 }
