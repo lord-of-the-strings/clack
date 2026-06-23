@@ -1,0 +1,32 @@
+# Maintainer: ThisWasAryan <https://github.com/ThisWasAryan>
+pkgname=clack-gui-git
+pkgver=2.0.0.r0
+pkgrel=1
+pkgdesc="A modern typing simulator with advanced humanization"
+arch=('any')
+url="https://github.com/lord-of-the-strings/clack"
+license=('MIT')
+depends=('python' 'python-gobject' 'gtk4')
+makedepends=('git' 'python-build' 'python-installer' 'python-setuptools' 'python-wheel')
+provides=('clack-gui')
+conflicts=('clack-gui')
+
+source=("clack::git+${url}.git#branch=app")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "${srcdir}/clack"
+  git describe --long --tags 2>/dev/null | sed 's/\([^-]*-\)*g/r/;s/-/./g' || echo "2.0.0.r$(git rev-list --count HEAD).g$(git rev-parse --short HEAD)"
+}
+
+build() {
+  cd "${srcdir}/clack"
+  python -m build --wheel --no-isolation
+}
+
+package() {
+  cd "${srcdir}/clack"
+  python -m installer --destdir="$pkgdir" dist/*.whl
+  install -Dm644 org.thiswasaryan.clack.desktop "$pkgdir/usr/share/applications/org.thiswasaryan.clack.desktop"
+ # install -Dm644 gui/assets/clack.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/org.thiswasaryan.clack.png"
+}
