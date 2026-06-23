@@ -80,6 +80,6 @@ if [ ! -f "appimagetool-x86_64.AppImage" ] || [ ! -s "appimagetool-x86_64.AppIma
 fi
 
 # Build AppImage
-./appimagetool-x86_64.AppImage --appimage-extract-and-run "$APPDIR" "${OUT_DIR}/clack_v2.AppImage"
+./appimagetool-x86_64.AppImage --appimage-extract-and-run "$APPDIR" "${OUT_DIR}/clack-gui_v2.0.0_amd64.AppImage"
 
-echo "Success! Package built at ${OUT_DIR}/clack_v2.AppImage"
+echo "Success! Package built at ${OUT_DIR}/clack-gui_v2.0.0_amd64.AppImage"

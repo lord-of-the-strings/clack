@@ -100,6 +100,6 @@ cat <<EOF > "$BUILD_DIR/usr/share/icons/hicolor/scalable/apps/clack.svg"
 EOF
 
 # Build package
-dpkg-deb --build "$BUILD_DIR" "${OUT_DIR}/${PKG_NAME}_v2_${ARCH}.deb"
+dpkg-deb --build "$BUILD_DIR" "${OUT_DIR}/${PKG_NAME}-gui_v${VERSION}_${ARCH}.deb"
 
-echo "Success! Package built at ${OUT_DIR}/${PKG_NAME}_v2_${ARCH}.deb"
+echo "Success! Package built at ${OUT_DIR}/${PKG_NAME}-gui_v${VERSION}_${ARCH}.deb"
