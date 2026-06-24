@@ -29,5 +29,5 @@ package() {
   cd "${srcdir}/clack"
   python -m installer --destdir="$pkgdir" dist/*.whl
   install -Dm644 org.thiswasaryan.clack.desktop "$pkgdir/usr/share/applications/org.thiswasaryan.clack.desktop"
- # install -Dm644 gui/assets/clack.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/org.thiswasaryan.clack.png"
+ install -Dm644 gui/assets/clack.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/org.thiswasaryan.clack.svg"
 }
