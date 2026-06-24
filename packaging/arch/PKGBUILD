@@ -1,11 +1,12 @@
 # Maintainer: ThisWasAryan <https://github.com/ThisWasAryan>
+# Maintainer: lord-of-the-strings <https://github.com/lord-of-the-strings>
 pkgname=clack-gui-git
 _pyname=clack-gui
 pkgver=r2619a53
 pkgrel=1
 pkgdesc="A modern typing simulator with advanced humanization"
 arch=('x86_64')
-url="https://github.com/lord-of-the-strings/clack"
+url="https://github.com/ThisWasAryan/clack"
 license=('MIT')
 depends=('python' 'python-gobject' 'gtk4' 'ydotool')
 makedepends=('git' 'python-build' 'python-installer' 'python-setuptools' 'python-wheel' 'cargo' 'python-setuptools-rust')
